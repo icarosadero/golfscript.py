@@ -110,7 +110,7 @@ class Interpreter(object):
                 logging.debug("set: %s %s" % (op,self.stack[-1]))
             elif op in self.words:
                 # found token in wordlist
-                ks = self.words[op].keys()
+                ks = list(self.words[op].keys())
                 if ks[0]: # word has typed parameters
                     if not try_run(op,ks): 
                         # no match found, try and coerce the types to fit
@@ -334,7 +334,7 @@ class Interpreter(object):
             self.stack.append(('a', l[::-1]))  
         
         @self.add_word('p', '', 1)
-        def pputs(a): print self._quote(a[1])[0][1]
+        def pputs(a): print(self._quote(a[1])[0][1])
         
         self.add_word(' ', '', 0)(lambda: None)
         self.add_word(':', '', 0)(lambda: [('w',':')])
@@ -401,7 +401,7 @@ class Interpreter(object):
             elif order[b[0]] > order[a[0]]: a = _raise(a)
         
         return a,b
- 
+
 def run_tests():
     tests = [('5~','-6'),
         ('"1 2+"~','3'),
@@ -456,7 +456,7 @@ def run_tests():
         ("'\\n'",'"\\n"'),
         ("' \\' "," ' "),
         #(' "\n" ',' "\n" '),
-        ('1 2 [\]','[2 1]'),
+        ('1 2 [\\]','[2 1]'),
         ('1 2 3\\','1 3 2'),
         ('1:a a','1 1'),
         ('1:O;O','1'),
@@ -508,13 +508,13 @@ def run_tests():
         ("""[1 2 3]`""","\"[1 2 3]\""),
         (""" 3 4 >""","0"),
         ("""[1 2 3 4]{+}*""","10"),
-        ("""{[2 3 4] 5 3 6 {.@\%.}*}`""","\"{[2 3 4] 5 3 6 {.@\%.}*}\""),
+        ("""{[2 3 4] 5 3 6 {.@\\%.}*}`""","\"{[2 3 4] 5 3 6 {.@\\%.}*}\""),
         (""" 5,`""","\"[0 1 2 3 4]\""),
         ("""[1 2 3 4 5 6]{.* 20>}?""","5"),
         ("""5 1+,1>{*}*""","120"),
         ("""[1 2 3][4 5]+""","[1 2 3 4 5]"),
         ("""5{1-..}do""","4 3 2 1 0 0"),
-        ("""2706 410{.@\%.}do;""","82"),
+        ("""2706 410{.@\\%.}do;""","82"),
         ("""5 2,~{.@+.100<}do""","5 89 144"),
         ("""5,{1+}%{*}*""","120"),
         # testing quotes
@@ -529,56 +529,22 @@ def run_tests():
         ('[1 2 3]`','"[1 2 3]"'),
         ('[1 [2] 3]`','"[1 [2] 3]"'),
         ('[1 [2] 3 {.@+}]`','"[1 [2] 3 {.@+}]"'),
-        ('[1 [2 "hei"] 3]`','"[1 [2 \\"hei\\"] 3]"'),
-        #('139~:@.{0\\`{15&.*+}/}*1=!"happy sad "6/=@,{@\\)%!},,2=4*"non-prime">','happy prime')
+        ('[1 [2 "hei"] 3]`','"[1 [2 \\"hei\\"] 3]"')
     ]
-    
-    #program = """~:@.{0\`{15&.*+}/}*1=!"happy sad "6/"""
-    #  """=@,{@\)%!},,2=4*"non-prime">"""
-    #program = """'asdf'{+}*"""
-    #program = """99{n+~."+#,#6$DWOXB79Bd")base`1/10/~{~2${~1$+}%(;+~}%""" 
-    #  """++=" is "\"."1$4$4-}do;;;"magic." """
-    #program = """''6666,-2%{2+.2/@*\/10.3??2*+}*`50<~\;"""
     ntp = Interpreter()
-    succ,ran = 0,0
+    succ, ran = 0, 0
     for it in tests:
         res = ntp._quote(ntp.compile(it[0]))[0][1]
         ran += 1
-        if it[1]==res: 
-            print "SUCC:",it[0],"=>",res
+        if it[1] == res:
+            print("SUCC:", it[0], "=>", res)
             succ += 1
-        else: 
-            print "FAIL:",it[0],"=>",res," | ",it[1]
+        else:
+            print("FAIL:", it[0], "=>", res, " | ", it[1])
         ntp.stack = []
-    print succ,"/",ran
+    print(succ, "/", ran)
 
-def run_some_scripts():      
-    ntp = Interpreter()
-    #"""''66,-2%{2+.2/@*\/10.3??2*+}*`50<~\;"""
-    #"""66,-2%{2+.2/@*\/9)499?2*+}*"""
-    #""" 7 9000 2?\/ 6+ 7000 2?\/ 6+ 5000 2?\/ 6+ 3000 2? 6+ 1000 2?  """
-    program1 = """
-    "duplicate n values top of the stack";
-    {["{"2$("$}"4$"*"]{+}*\;~}:rg;
-    
-    "1 2 3 5 8 13 ...";
-    ["2rg+..50<E@if~":E; 1 2 E~;];
-    """
-    
-    program2 = '200,{)}%2%700000000+{\\10000*2?100000000*\\/600000000+}*300000000-'
-    #2000,{)}%2%B B6++{\A*2?B*\/B6+}*3 B*-
-    
-    #t1 = time.time()
-    #cProfile.compile('ntp.exec_ast(ntp.parser.do(program))')
-    #t2 = time.time()
-    #print '%0.3f' % (t2-t1)
 
-    ntp.exec_ast(ntp.parser.do(program2))
-    print ntp._quote(ntp.stack)[0][1]
-    for it in sorted(ntp.profile.items(), key=(lambda x: x[1].time))[::-1]:
-        print it[0],"\t",it[1]
-
-logging.basicConfig(level=logging.INFO)
-
-run_tests()
-#run_some_scripts()
+if __name__=="__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    run_tests()
